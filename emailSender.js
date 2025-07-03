@@ -7,7 +7,6 @@ import mongoose from 'mongoose';
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5050;
-;
 
 app.use(cors());
 app.use(express.json());
@@ -28,11 +27,9 @@ const waitTimeSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-
-
 const WaitTimeSubmission = mongoose.model('WaitTimeSubmission', waitTimeSchema);
 
-// ✉️ (Optional) Keep this route if you still want email notifications
+// ✉️ (Optional) Email notifications
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -60,7 +57,7 @@ app.post('/send-email', async (req, res) => {
   }
 });
 
-// ✅ New route: Save submissions to MongoDB
+// ✅ Save submissions to MongoDB
 app.post('/submit-wait-time', async (req, res) => {
   const { hospital, waitTime } = req.body;
 
@@ -81,36 +78,17 @@ app.post('/submit-wait-time', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to store submission' });
   }
 });
+
 // ✅ Get approved wait times
 app.get('/wait-times', async (req, res) => {
   try {
-    const approvedTimes = await WaitTimeSubmission.find({ approved: true });
+    const approvedTimes = await WaitTimeSubmission.find({ status: 'approved' });
     res.json(approvedTimes);
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to fetch wait times' });
   }
 });
 
-// ✅ Get pending submissions
-app.get('/pending-wait-times', async (req, res) => {
-  try {
-    const pending = await WaitTimeSubmission.find({ approved: false });
-    res.json(pending);
-  } catch (err) {
-    res.status(500).json({ success: false, error: 'Failed to fetch pending submissions' });
-  }
-});
-
-// ✅ Approve a submission
-app.post('/approve-wait-time', async (req, res) => {
-  const { id } = req.body;
-  try {
-    await WaitTimeSubmission.findByIdAndUpdate(id, { approved: true });
-    res.json({ success: true, message: 'Submission approved' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: 'Failed to approve submission' });
-  }
-});
 // ✅ Get all pending submissions
 app.get('/admin/submissions', async (req, res) => {
   try {
@@ -143,6 +121,7 @@ app.post('/admin/approve/:id', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to approve submission' });
   }
 });
+
 // ✅ Admin login check
 app.post('/admin/login', (req, res) => {
   const { password } = req.body;
@@ -153,7 +132,6 @@ app.post('/admin/login', (req, res) => {
     res.status(401).json({ success: false, error: 'Incorrect admin password' });
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
