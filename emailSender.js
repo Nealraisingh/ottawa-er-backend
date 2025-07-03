@@ -111,6 +111,38 @@ app.post('/approve-wait-time', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to approve submission' });
   }
 });
+// ✅ Get all pending submissions
+app.get('/admin/submissions', async (req, res) => {
+  try {
+    const pending = await WaitTimeSubmission.find({ status: 'pending' });
+    res.json(pending);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch submissions' });
+  }
+});
+
+// ✅ Approve a submission
+app.post('/admin/approve/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updated = await WaitTimeSubmission.findByIdAndUpdate(
+      id,
+      { status: 'approved' },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Submission not found' });
+    }
+
+    res.json({ success: true, message: 'Submission approved', updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to approve submission' });
+  }
+});
 
 
 app.listen(PORT, () => {
