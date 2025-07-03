@@ -162,6 +162,25 @@ app.delete('/admin/delete/:id', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to delete submission' });
   }
 });
+app.get('/admin/approved', async (req, res) => {
+  try {
+    const approved = await WaitTimeSubmission.find({ status: 'approved' });
+    res.json(approved);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch approved submissions' });
+  }
+});
+// ✅ Get all approved submissions
+app.get('/admin/approved', async (req, res) => {
+  try {
+    const approved = await WaitTimeSubmission.find({ status: 'approved' }).sort({ timestamp: -1 });
+    res.json(approved);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch approved submissions' });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
