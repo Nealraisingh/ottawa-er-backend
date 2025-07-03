@@ -27,6 +27,7 @@ const waitTimeSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
+
 const WaitTimeSubmission = mongoose.model('WaitTimeSubmission', waitTimeSchema);
 
 // ✉️ (Optional) Email notifications
@@ -181,6 +182,41 @@ app.get('/admin/approved', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch approved submissions' });
   }
 });
+
+// ✅ Reject a submission
+app.post('/admin/reject/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updated = await WaitTimeSubmission.findByIdAndUpdate(
+      id,
+      { status: 'rejected' },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Submission not found' });
+    }
+
+    res.json({ success: true, message: 'Submission rejected', updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to reject submission' });
+  }
+});
+// Get wait time history for all hospitals
+app.get('/wait-times/history', async (req, res) => {
+  console.log('GET /wait-times/history called');
+  try {
+    const history = await WaitTimeSubmission.find({ status: 'approved' }).sort({ timestamp: 1 });
+    res.json(history);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch wait time history' });
+  }
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
