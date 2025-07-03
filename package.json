@@ -2,8 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-"type": "module",
-
+  "type": "module",
   "main": "emailSender.js",
   "scripts": {
     "start": "node emailSender.js",
@@ -19,5 +18,10 @@
   "bugs": {
     "url": "https://github.com/Nealraisingh/ottawa-er-backend/issues"
   },
-  "homepage": "https://github.com/Nealraisingh/ottawa-er-backend#readme"
+  "homepage": "https://github.com/Nealraisingh/ottawa-er-backend#readme",
+  "dependencies": {
+    "dotenv": "^17.0.1",
+    "express": "^5.1.0",
+    "nodemailer": "^7.0.4"
+  }
 }
