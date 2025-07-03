@@ -143,6 +143,16 @@ app.post('/admin/approve/:id', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to approve submission' });
   }
 });
+// ✅ Admin login check
+app.post('/admin/login', (req, res) => {
+  const { password } = req.body;
+
+  if (password === process.env.ADMIN_PASSWORD) {
+    res.json({ success: true, message: 'Admin authenticated' });
+  } else {
+    res.status(401).json({ success: false, error: 'Incorrect admin password' });
+  }
+});
 
 
 app.listen(PORT, () => {
