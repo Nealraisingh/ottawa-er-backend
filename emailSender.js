@@ -145,6 +145,23 @@ app.post('/admin/login', (req, res) => {
     res.status(401).json({ success: false, error: 'Incorrect admin password' });
   }
 });
+// ✅ Delete a submission
+app.delete('/admin/delete/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await WaitTimeSubmission.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: 'Submission not found' });
+    }
+
+    res.json({ success: true, message: 'Submission deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to delete submission' });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
