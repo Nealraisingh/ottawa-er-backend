@@ -79,15 +79,28 @@ app.post('/submit-wait-time', async (req, res) => {
   }
 });
 
-// ✅ Get approved wait times
+// ✅ Get latest approved wait time per hospital
 app.get('/wait-times', async (req, res) => {
   try {
-    const approvedTimes = await WaitTimeSubmission.find({ status: 'approved' });
-    res.json(approvedTimes);
+    // Find all approved, sorted newest first
+    const approvedTimes = await WaitTimeSubmission
+      .find({ status: 'approved' })
+      .sort({ timestamp: -1 });
+
+    // Keep only the latest per hospital
+    const latestPerHospital = {};
+    approvedTimes.forEach(submission => {
+      if (!latestPerHospital[submission.hospitalName]) {
+        latestPerHospital[submission.hospitalName] = submission;
+      }
+    });
+
+    res.json(Object.values(latestPerHospital));
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to fetch wait times' });
   }
 });
+
 
 // ✅ Get all pending submissions
 app.get('/admin/submissions', async (req, res) => {
