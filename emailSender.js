@@ -24,9 +24,10 @@ mongoose.connect(process.env.MONGO_URI, {
 const waitTimeSchema = new mongoose.Schema({
   hospitalName: String,
   waitTime: Number,
-  approved: { type: Boolean, default: false },
+  status: { type: String, default: 'pending' }, // pending / approved / rejected
   timestamp: { type: Date, default: Date.now },
 });
+
 
 
 const WaitTimeSubmission = mongoose.model('WaitTimeSubmission', waitTimeSchema);
