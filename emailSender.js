@@ -27,10 +27,9 @@ const waitTimeSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-
 const WaitTimeSubmission = mongoose.model('WaitTimeSubmission', waitTimeSchema);
 
-// ✉️ (Optional) Email notifications
+// ✉️ Email notifications
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -83,12 +82,10 @@ app.post('/submit-wait-time', async (req, res) => {
 // ✅ Get latest approved wait time per hospital
 app.get('/wait-times', async (req, res) => {
   try {
-    // Find all approved, sorted newest first
     const approvedTimes = await WaitTimeSubmission
       .find({ status: 'approved' })
       .sort({ timestamp: -1 });
 
-    // Keep only the latest per hospital
     const latestPerHospital = {};
     approvedTimes.forEach(submission => {
       if (!latestPerHospital[submission.hospitalName]) {
@@ -101,7 +98,6 @@ app.get('/wait-times', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch wait times' });
   }
 });
-
 
 // ✅ Get all pending submissions
 app.get('/admin/submissions', async (req, res) => {
@@ -136,53 +132,6 @@ app.post('/admin/approve/:id', async (req, res) => {
   }
 });
 
-// ✅ Admin login check
-app.post('/admin/login', (req, res) => {
-  const { password } = req.body;
-
-  if (password === process.env.ADMIN_PASSWORD) {
-    res.json({ success: true, message: 'Admin authenticated' });
-  } else {
-    res.status(401).json({ success: false, error: 'Incorrect admin password' });
-  }
-});
-// ✅ Delete a submission
-app.delete('/admin/delete/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const deleted = await WaitTimeSubmission.findByIdAndDelete(id);
-
-    if (!deleted) {
-      return res.status(404).json({ success: false, error: 'Submission not found' });
-    }
-
-    res.json({ success: true, message: 'Submission deleted' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: 'Failed to delete submission' });
-  }
-});
-app.get('/admin/approved', async (req, res) => {
-  try {
-    const approved = await WaitTimeSubmission.find({ status: 'approved' });
-    res.json(approved);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: 'Failed to fetch approved submissions' });
-  }
-});
-// ✅ Get all approved submissions
-app.get('/admin/approved', async (req, res) => {
-  try {
-    const approved = await WaitTimeSubmission.find({ status: 'approved' }).sort({ timestamp: -1 });
-    res.json(approved);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: 'Failed to fetch approved submissions' });
-  }
-});
-
 // ✅ Reject a submission
 app.post('/admin/reject/:id', async (req, res) => {
   try {
@@ -204,9 +153,49 @@ app.post('/admin/reject/:id', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to reject submission' });
   }
 });
-// Get wait time history for all hospitals
+
+// ✅ Delete a submission
+app.delete('/admin/delete/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await WaitTimeSubmission.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: 'Submission not found' });
+    }
+
+    res.json({ success: true, message: 'Submission deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to delete submission' });
+  }
+});
+
+// ✅ Admin login check
+app.post('/admin/login', (req, res) => {
+  const { password } = req.body;
+
+  if (password === process.env.ADMIN_PASSWORD) {
+    res.json({ success: true, message: 'Admin authenticated' });
+  } else {
+    res.status(401).json({ success: false, error: 'Incorrect admin password' });
+  }
+});
+
+// ✅ Get all approved submissions
+app.get('/admin/approved', async (req, res) => {
+  try {
+    const approved = await WaitTimeSubmission.find({ status: 'approved' }).sort({ timestamp: -1 });
+    res.json(approved);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch approved submissions' });
+  }
+});
+
+// ✅ Get wait time history
 app.get('/wait-times/history', async (req, res) => {
-  console.log('GET /wait-times/history called');
   try {
     const history = await WaitTimeSubmission.find({ status: 'approved' }).sort({ timestamp: 1 });
     res.json(history);
@@ -216,9 +205,46 @@ app.get('/wait-times/history', async (req, res) => {
   }
 });
 
+// ✅ New: Trends endpoint
+app.get('/api/trends', async (req, res) => {
+  try {
+    const approved = await WaitTimeSubmission.find({ status: 'approved' });
 
+    const trends = {};
 
+    approved.forEach(sub => {
+      const hospital = sub.hospitalName;
+      const date = new Date(sub.timestamp);
+      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const waitTime = sub.waitTime;
+
+      if (!trends[hospital]) trends[hospital] = {};
+      if (!trends[hospital][dayOfWeek]) {
+        trends[hospital][dayOfWeek] = { total: 0, count: 0 };
+      }
+
+      trends[hospital][dayOfWeek].total += waitTime;
+      trends[hospital][dayOfWeek].count += 1;
+    });
+
+    const result = {};
+    Object.keys(trends).forEach(hospital => {
+      result[hospital] = {};
+      Object.keys(trends[hospital]).forEach(day => {
+        const { total, count } = trends[hospital][day];
+        result[hospital][day] = Math.round(total / count);
+      });
+    });
+
+    res.json(result);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to compute trends' });
+  }
+});
+
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
-
